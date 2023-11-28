@@ -54,6 +54,7 @@
       "last 1 safari version"
     ]
   },
+  "homepage": "https://rlaugs15.github.io/react-dnd",
   "devDependencies": {
     "@tanstack/react-query-devtools": "^5.0.5",
     "@types/react-beautiful-dnd": "^13.1.7",

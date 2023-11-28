@@ -1,23 +1,42 @@
-import { Draggable, Droppable } from "react-beautiful-dnd";
-import DragabbleCard from "./DragabbleCard";
 import { styled } from "styled-components";
+import React from "react";
+import { Droppable } from "react-beautiful-dnd";
 import { IToDo, toDoState } from "./atoms";
+import DragabbleCard from "./DragabbleCard";
 import { useForm } from "react-hook-form";
-import { useRecoilState } from "recoil";
-import React, { useState } from "react";
-import { title } from "process";
+import { useSetRecoilState } from "recoil";
+import { BiCommentX } from "react-icons/bi";
 
 const Wrapper = styled.div`
   background-color: yellowgreen;
   border-radius: 5px;
 `;
 
-const Area = styled.div`
-  padding: 10px 0px;
-  border-radius: 5px;
-  min-height: 200px;
+const BtnWrapper = styled.div`
   display: flex;
-  flex-direction: column;
+  justify-content: flex-end;
+`;
+
+const Button = styled.button`
+  margin-top: 4px;
+  border: none;
+  border-radius: 5px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background-color: transparent;
+`;
+
+const Btn = styled(BiCommentX)`
+  font-size: 20px;
+`;
+
+const Area = styled.div<{ draggingOver: boolean }>`
+  min-height: 250px;
+  border-radius: 5px;
+  background-color: ${(props) =>
+    props.draggingOver ? "#A5DF00" : "yellowgreen"};
+  transition: background-color 0.5s ease-in-out;
 `;
 
 const Title = styled.span`
@@ -28,6 +47,11 @@ const Title = styled.span`
   font-weight: 500;
 `;
 
+const TInput = styled.input`
+  text-align: center;
+  border-radius: 5px;
+`;
+
 const Form = styled.form`
   display: flex;
   flex-direction: column;
@@ -35,82 +59,111 @@ const Form = styled.form`
   margin-top: 7px;
 `;
 
-const TitleInput = styled.input`
+const Input = styled.input`
   border-radius: 5px;
-  margin: 2px 7px;
-  text-align: center;
+  margin: 0 7px;
 `;
 
-const Input = styled.input<{ isInput: boolean }>`
-  border-radius: 5px;
-  background-color: ${(props) => (props.isInput ? "greenyellow" : "white")};
-  margin: 0 2px;
-`;
-
-interface BoardIdProps {
+interface BoardProps {
   boardId: string;
   toDos: IToDo[];
 }
 
 interface IForm {
-  title: string;
   toDo: string;
+  title: string;
 }
 
-function Board({ boardId, toDos }: BoardIdProps) {
-  const [isInput, setIsInput] = useState(true);
-  const [toDo, setToDos] = useRecoilState(toDoState);
-
+function Board({ boardId, toDos }: BoardProps) {
+  const setToDos = useSetRecoilState(toDoState);
   const { register, setValue, handleSubmit } = useForm<IForm>({
     defaultValues: {
       title: `${boardId}`,
     },
   });
-
-  const foCusChange = () => setIsInput((prev) => !prev);
-  const onSubmit = (info: IForm) => {
-    console.log("인풋", info);
-    const { toDo } = info;
-
-    /*   if (title !== boardId) {
-      setToDos((allBoards) => {
-        const targetValue = [...allBoards[boardId]];
-        const newObject = { ...allBoards, [title]: targetValue };
-        delete newObject[boardId]; // 기존 boardId 제거
-        return newObject;
-      });
-    } */
+  //타이틀 수정
+  const onTitle = ({ title }: IForm) => {
+    if (boardId === title) return;
     setToDos((allToDos) => {
-      const newToDo = { id: Date.now(), text: toDo }; //toDo가 IFrom타입이라
+      // title과 일치하는 boardId가 이미 존재하는지 확인
+      const isTitleExists = Object.keys(allToDos).some((key) => key === title);
+      // 일치하는 boardId가 있으면 종료
+      if (isTitleExists) {
+        setValue("title", `${boardId}`);
+        return allToDos;
+      }
+
+      const oldTitleValue = [...allToDos[boardId]];
+      const toDos = { ...allToDos };
+      const obj = Object.entries(toDos);
+
+      const targetIndex = obj.findIndex((toDo) => toDo[0] === boardId);
+      if (targetIndex !== -1) {
+        obj.splice(targetIndex, 1, [title, oldTitleValue]);
+        const updatedToDos = Object.fromEntries(obj);
+
+        return updatedToDos;
+      } else {
+        return allToDos;
+      }
+    });
+  };
+  //카드 리스트 추가
+  const onSubmit = ({ toDo }: IForm) => {
+    setToDos((allToDos) => {
+      const value = [...allToDos[boardId]];
       return {
         ...allToDos,
-        [boardId]: [...toDos, newToDo],
+        [boardId]: [...value, { id: Date.now(), text: toDo }],
       };
     });
     setValue("toDo", "");
   };
+  //보드 삭제 버튼
+  const onClick = (event: React.MouseEvent<HTMLButtonElement>) => {
+    const {
+      currentTarget: { value },
+    } = event;
+    setToDos((allBoards) => {
+      const arrayBoards = Object.entries({ ...allBoards });
+      const filteredBoards = arrayBoards.filter(
+        (boards) => boards[0] !== value
+      );
+      const finish = Object.fromEntries(filteredBoards);
+      return {
+        ...finish,
+      };
+    });
+  };
+
   return (
     <Wrapper>
-      <Title>{boardId}</Title>
+      <BtnWrapper>
+        <Button value={boardId} onClick={onClick}>
+          <Btn />
+        </Button>
+      </BtnWrapper>
+      <Title>
+        <form onSubmit={handleSubmit(onTitle)}>
+          <TInput {...register("title")} type="text" />
+        </form>
+      </Title>
       <Form onSubmit={handleSubmit(onSubmit)}>
-        {/* <TitleInput {...register("title")} /> */}
-        <Input
-          {...register("toDo")}
-          placeholder={isInput ? "" : `${boardId}를 입력하시오`}
-          onFocus={foCusChange}
-          onBlur={foCusChange}
-          isInput={isInput}
-        />
+        <Input {...register("toDo")} placeholder={`${boardId}를 입력하시오`} />
       </Form>
-      <Droppable key={boardId} droppableId={boardId}>
-        {(provided) => (
-          <Area ref={provided.innerRef} {...provided.droppableProps}>
+      <Droppable droppableId={boardId} key={boardId}>
+        {(provided, snapshot) => (
+          <Area
+            ref={provided.innerRef}
+            {...provided.droppableProps}
+            draggingOver={Boolean(snapshot.isDraggingOver)}
+          >
             {toDos.map((toDo, index) => (
               <DragabbleCard
-                toDo={toDo.id}
-                index={index}
-                key={toDo.id}
+                toDoId={toDo.id}
                 text={toDo.text}
+                key={toDo.id}
+                index={index}
               />
             ))}
             {provided.placeholder}

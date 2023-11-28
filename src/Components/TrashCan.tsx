@@ -4,22 +4,14 @@ import { Draggable } from "react-beautiful-dnd";
 import { styled } from "styled-components";
 
 const Area = styled.div<{ isDraggingOver: boolean }>`
-  padding: 10px 0px;
-  border-radius: 5px;
   background-color: ${(props) => (props.isDraggingOver ? "red" : "green")};
-  min-height: 70px;
-  max-height: 70px;
-  min-width: 60px;
-  max-width: 60px;
-  padding: 5px;
+  padding: 4px 2px;
+  border-radius: 5px;
   transition: background-color 0.2s ease-in-out;
 `;
 
-const Garbage = styled.span`
-  display: flex;
-  justify-content: center;
-  align-items: center;
-`;
+const FaTrash = styled.div``;
+
 const FaTrashCan = styled(FaTrashAlt)`
   font-size: 56px;
 `;
@@ -38,14 +30,13 @@ function TrashCan({ boardId, index }: TrashCanProps) {
           {...provided.droppableProps}
           isDraggingOver={snapshot.isDraggingOver}
         >
-          <Draggable key={boardId} draggableId={boardId} index={index}>
+          <Draggable draggableId={boardId} index={index}>
             {(provided) => (
-              <Garbage ref={provided.innerRef}>
+              <FaTrash ref={provided.innerRef}>
                 <FaTrashCan />
-              </Garbage>
+              </FaTrash>
             )}
           </Draggable>
-          {provided.placeholder}
         </Area>
       )}
     </Droppable>
